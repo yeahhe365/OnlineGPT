@@ -1,4 +1,4 @@
-# OnlineGPT
+![Clip_2024-09-29_23-44-25](https://github.com/user-attachments/assets/6d0cc3bf-d9ac-4c0b-849c-902a581ea3e8)# OnlineGPT
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
@@ -111,7 +111,9 @@ python main.py
 
 （在此处添加程序的 UI 图片，例如主窗口的截图）
 
-![主窗口界面](resources/main_window.png)
+![Clip_2024-09-29_23-44-25](https://github.com/user-attachments/assets/60cd2f8e-7b07-4dc9-ab1f-a138e4e53f2b)
+![Clip_2024-09-29_23-45-41](https://github.com/user-attachments/assets/456fcac1-54c6-43aa-9c87-67acc7a421f3)
+
 
 - **搜索设置**
 
