@@ -1,4 +1,4 @@
-![Clip_2024-09-29_23-44-25](https://github.com/user-attachments/assets/6d0cc3bf-d9ac-4c0b-849c-902a581ea3e8)# OnlineGPT
+# OnlineGPT
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
