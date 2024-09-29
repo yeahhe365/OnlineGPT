@@ -1,5 +1,7 @@
 # OnlineGPT
 
+![Clip_2024-09-29_23-47-27](https://github.com/user-attachments/assets/02794f4f-f552-45ff-a6bc-54fd18f2d006)
+
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 ## 简介
