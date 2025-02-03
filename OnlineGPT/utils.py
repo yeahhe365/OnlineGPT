@@ -11,12 +11,12 @@ def clean_text(text):
     """
     清洗文本，移除控制字符和非打印字符。
     """
-    # 移除控制字符
     return re.sub(r'[\x00-\x1F\x7F]', '', text)
 
 def get_page_content(url, worker=None):
     """
     获取指定URL页面的所有文本内容，处理编码并过滤非HTML内容，同时尽量保留原网页的文本格式。
+    支持中断功能：使用流式下载数据，并在每个块读取时检测 worker 的中断标志。
     """
     if worker and not worker.is_running:
         logging.info(f"中断获取页面内容：{url}")
@@ -31,21 +31,28 @@ def get_page_content(url, worker=None):
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
     }
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        # 使用 stream=True 以便分块读取数据
+        response = requests.get(url, headers=headers, stream=True, timeout=10)
         response.raise_for_status()
 
-        # 获取Content-Type并检查是否为HTML
         content_type = response.headers.get('Content-Type', '')
         if 'text/html' not in content_type:
             logging.warning(f"非HTML内容，跳过: {url}，Content-Type: {content_type}")
             return "非HTML内容，无法提取"
 
-        # 使用charset-normalizer检测编码
-        detected = charset_normalizer.from_bytes(response.content).best()
-        encoding = detected.encoding if detected and detected.encoding else 'utf-8'
+        chunks = []
+        # 以 1KB 为单位读取响应数据，并在每个块时检查中断标志
+        for chunk in response.iter_content(chunk_size=1024):
+            if worker and not worker.is_running:
+                logging.info(f"中断获取页面内容：{url}")
+                response.close()
+                return "任务已中断，无法获取内容"
+            chunks.append(chunk)
+        content_bytes = b''.join(chunks)
 
-        # 使用检测到的编码解码内容
-        text = response.content.decode(encoding, errors='replace')
+        detected = charset_normalizer.from_bytes(content_bytes).best()
+        encoding = detected.encoding if detected and detected.encoding else 'utf-8'
+        text = content_bytes.decode(encoding, errors='replace')
         logging.info(f"检测到编码: {encoding}，URL: {url}")
     except requests.RequestException as e:
         logging.error(f"获取页面内容失败 ({url}): {e}")
@@ -56,25 +63,20 @@ def get_page_content(url, worker=None):
 
     soup = BeautifulSoup(text, 'html.parser')
 
-    # 尝试提取主要内容，首先寻找<article>标签
+    # 尝试优先提取 <article> 标签内的内容
     article = soup.find('article')
     if article:
-        # 使用换行符分隔段落，保留基本格式
         extracted_text = '\n\n'.join([
             p.get_text(separator='\n', strip=True)
             for p in article.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'])
         ])
     else:
-        # 如果没有<article>标签，则提取所有<p>和其他块级标签的内容
         paragraphs = soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'])
         extracted_text = '\n\n'.join([
             p.get_text(separator='\n', strip=True) for p in paragraphs
         ])
 
-    # 清洗文本，移除控制字符等
     extracted_text = clean_text(extracted_text)
-
-    # 如果提取的文本过短，可能需要进一步处理
     if len(extracted_text) < 200:
         logging.debug(f"提取内容过短 ({len(extracted_text)} 字符), 使用备用方法。")
         extracted_text = '\n\n'.join([
@@ -138,8 +140,6 @@ def generate_txt_content(all_results, query, engine='Google', custom_question=No
         idx = 1
         for result in all_results:
             content += f"NUMBER:{idx}\n"
-            # 移除搜索引擎信息
-            # content += f"Engine: {result['engine']}\n"
             content += f"URL: {result['link']}\n"
             content += f"TITLE: {result['title']}\n"
             content += f"SNIPPET: {result['snippet']}\n"
@@ -168,5 +168,5 @@ def save_results_to_txt(all_results, query, filename=None, engine='Google', cust
         logging.info(f"搜索结果成功保存到 {filename}")
         return filename  # 返回保存的文件路径
     except Exception as e:
-            logging.error(f"保存文件时出错：{e}")
-            raise e
+        logging.error(f"保存文件时出错：{e}")
+        raise e
